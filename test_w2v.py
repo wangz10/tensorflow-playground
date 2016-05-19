@@ -23,7 +23,18 @@ print('Sample data', data[:10])
 print(len(data))
 
 
-w2v = Word2Vec(vocabulary_size=vocabulary_size, n_steps=10001)
+w2v = Word2Vec(vocabulary_size=vocabulary_size, 
+	architecture='cbow',
+	# loss_type='nce_loss',
+	n_steps=10001)
 
 w2v.fit(data)
 print(w2v.final_embeddings.shape)
+print(w2v.sort(1).shape)
+
+print('words closest to %s:' % reverse_dictionary[1])
+print([reverse_dictionary[i] for i in w2v.sort(1)[:10]])
+
+# print([reverse_dictionary[i] for i in range(3)])
+# print(w2v.transform([0,1,2,3]).shape)
+

@@ -24,6 +24,7 @@ from itertools import compress
 import numpy as np
 import tensorflow as tf
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.metrics.pairwise import pairwise_distances
 
 # Set random seeds
 SEED = 2016
@@ -157,9 +158,11 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		self.n_steps = n_steps
 		self.valid_size = valid_size
 		self.valid_window = valid_window
-
+		# pick a list of words as validataion set
 		self._pick_valid_samples()
+		# choose a batch_generator function for feed_dict
 		self._choose_batch_generator()
+		# init all variables in a tensorflow graph
 		self._init_graph()
 		# create a session
 		self.sess = tf.Session(graph=self.graph)
@@ -206,7 +209,7 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 				self.embed = tf.nn.embedding_lookup(self.embeddings, self.train_dataset)
 			elif self.architecture == 'cbow':
 				embed = tf.zeros([self.batch_size, self.embedding_size])
-				for j in range(num_skips):
+				for j in range(self.num_skips):
 					embed += tf.nn.embedding_lookup(self.embeddings, self.train_dataset[:, j])
 				self.embed = embed
 			
@@ -268,14 +271,29 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 				# 		print(log)
 
 			final_embeddings = self.normalized_embeddings.eval()
-
 			self.final_embeddings = final_embeddings
+
 		return self
 
 	def transform(self, data):
-		return 
+		'''
+		Look up embedding vectors using indices
+		data: list of word index
+		'''
+		# make sure all word index are in range
+		assert all(np.array(data) < self.vocabulary_size - 1)
+		return self.final_embeddings[data]
 
+	def sort(self, i):
+		'''
+		Use an input word index to sort words using cosine distance in ascending order
+		'''
+		assert i < self.valid_size - 1
 
-
+		vec = self.final_embeddings[i]
+		# Calculate pairwise cosine distance and flatten to 1-d
+		pdist = pairwise_distances(self.final_embeddings, vec, metric='cosine').ravel()
+		return pdist.argsort()
+		
 
 
