@@ -288,12 +288,17 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		'''
 		Use an input word index to sort words using cosine distance in ascending order
 		'''
-		assert i < self.valid_size - 1
+		assert i < self.vocabulary_size - 1
 
-		vec = self.final_embeddings[i]
+		vec = self.final_embeddings[i].reshape(1, -1)
 		# Calculate pairwise cosine distance and flatten to 1-d
 		pdist = pairwise_distances(self.final_embeddings, vec, metric='cosine').ravel()
 		return pdist.argsort()
 		
+	def save(self):
+		'''
+		To save trained model.
+		'''
+		return
 
 
