@@ -336,13 +336,18 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		'''
 		To save trained model and its params.
 		'''
-		save_path = self.saver.save(self.sess, path + '/model.ckpt')
+		save_path = self.saver.save(self.sess, 
+			os.path.join(path, 'model.ckpt'))
 		# save parameters of the model
 		params = self.get_params()
-		json.dump(params, open(path + '/model_params.json', 'wb'))
+		json.dump(params, 
+			open(os.path.join(path, 'model_params.json'), 'wb'))
+		
 		# save dictionary, reverse_dictionary
-		json.dump(self.dictionary, open(path+ '/model_dict.json', 'wb'))
-		json.dump(self.reverse_dictionary, open(path+ '/model_rdict.json', 'wb'))
+		json.dump(self.dictionary, 
+			open(os.path.join(path, 'model_dict.json'), 'wb'))
+		json.dump(self.reverse_dictionary, 
+			open(os.path.join(path, 'model_rdict.json'), 'wb'))
 
 		print("Model saved in file: %s" % save_path)
 		return save_path
@@ -358,15 +363,15 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		'''
 		# load params of the model
 		path_dir = os.path.dirname(path)
-		params = json.load(open(path_dir + '/model_params.json', 'rb'))
+		params = json.load(open(os.path.join(path_dir, 'model_params.json'), 'rb'))
 		# init an instance of this class
 		estimator = Word2Vec(**params)
 		estimator._restore(path)
 		# evaluate the Variable normalized_embeddings and bind to final_embeddings
 		estimator.final_embeddings = estimator.sess.run(estimator.normalized_embeddings)
 		# bind dictionaries 
-		estimator.dictionary = json.load(open(path_dir + '/model_dict.json', 'rb'))
-		reverse_dictionary = json.load(open(path_dir + '/model_rdict.json', 'rb'))
+		estimator.dictionary = json.load(open(os.path.join(path_dir, 'model_dict.json'), 'rb'))
+		reverse_dictionary = json.load(open(os.path.join(path_dir, 'model_rdict.json'), 'rb'))
 		# convert indices loaded from json back to int since json does not allow int as keys
 		estimator.reverse_dictionary = {int(key):val for key, val in reverse_dictionary.items()}
 

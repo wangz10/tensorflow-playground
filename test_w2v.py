@@ -39,7 +39,7 @@ print(w2v.sort('the')[:10])
 # print([reverse_dictionary[i] for i in range(3)])
 # print(w2v.transform([0,1,2,3]).shape)
 
-save_path = w2v.save('models')
+save_path = w2v.save('models/test_model')
 print(w2v.final_embeddings[0,0])
 
 print save_path
