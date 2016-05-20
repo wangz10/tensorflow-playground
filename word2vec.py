@@ -164,8 +164,10 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		self._choose_batch_generator()
 		# init all variables in a tensorflow graph
 		self._init_graph()
+
 		# create a session
 		self.sess = tf.Session(graph=self.graph)
+		# self.sess = tf.InteractiveSession(graph=self.graph)
 
 
 	def _pick_valid_samples(self):
@@ -235,43 +237,53 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 			self.valid_embeddings = tf.nn.embedding_lookup(
 				self.normalized_embeddings, self.valid_dataset)
 			self.similarity = tf.matmul(self.valid_embeddings, tf.transpose(self.normalized_embeddings))
-		
+
+			# init op 
+			self.init_op = tf.initialize_all_variables()
+			# create a saver 
+			self.saver = tf.train.Saver()
+
 
 	def fit(self, data):
 		'''
 		data: a list of word index. 
 		'''
-		with self.sess as session:
-			tf.initialize_all_variables().run()
-			average_loss = 0
-			print("Initialized")
-			for step in range(self.n_steps):
-				batch_data, batch_labels = self.generate_batch(data,
-					self.batch_size, self.num_skips, self.skip_window)
-				feed_dict = {self.train_dataset : batch_data, self.train_labels : batch_labels}
-				op, l = session.run([self.optimizer, self.loss], feed_dict=feed_dict)
-				average_loss += l
-				if step % 2000 == 0:
-					if step > 0:
-						average_loss = average_loss / 2000
-					# The average loss is an estimate of the loss over the last 2000 batches.
-					print('Average loss at step %d: %f' % (step, average_loss))
-					average_loss = 0
-				# note that this is expensive (~20% slowdown if computed every 500 steps)
-				# if step % 10000 == 0:
-				# 	sim = similarity.eval()
-				# 	for i in range(valid_size):
-				# 		valid_word = reverse_dictionary[valid_examples[i]]
-				# 		top_k = 8 # number of nearest neighbors
-				# 		nearest = (-sim[i, :]).argsort()[1:top_k+1]
-				# 		log = 'Nearest to %s:' % valid_word
-				# 		for k in range(top_k):
-				# 			close_word = reverse_dictionary[nearest[k]]
-				# 			log = '%s %s,' % (log, close_word)
-				# 		print(log)
+		# with self.sess as session:
+		session = self.sess
 
-			final_embeddings = self.normalized_embeddings.eval()
-			self.final_embeddings = final_embeddings
+		session.run(self.init_op)
+		# tf.initialize_all_variables().run()
+
+		average_loss = 0
+		print("Initialized")
+		for step in range(self.n_steps):
+			batch_data, batch_labels = self.generate_batch(data,
+				self.batch_size, self.num_skips, self.skip_window)
+			feed_dict = {self.train_dataset : batch_data, self.train_labels : batch_labels}
+			op, l = session.run([self.optimizer, self.loss], feed_dict=feed_dict)
+			average_loss += l
+			if step % 2000 == 0:
+				if step > 0:
+					average_loss = average_loss / 2000
+				# The average loss is an estimate of the loss over the last 2000 batches.
+				print('Average loss at step %d: %f' % (step, average_loss))
+				average_loss = 0
+			# note that this is expensive (~20% slowdown if computed every 500 steps)
+			# if step % 10000 == 0:
+			# 	sim = similarity.eval()
+			# 	for i in range(valid_size):
+			# 		valid_word = reverse_dictionary[valid_examples[i]]
+			# 		top_k = 8 # number of nearest neighbors
+			# 		nearest = (-sim[i, :]).argsort()[1:top_k+1]
+			# 		log = 'Nearest to %s:' % valid_word
+			# 		for k in range(top_k):
+			# 			close_word = reverse_dictionary[nearest[k]]
+			# 			log = '%s %s,' % (log, close_word)
+			# 		print(log)
+
+		# final_embeddings = self.normalized_embeddings.eval()
+		final_embeddings = session.run(self.normalized_embeddings)
+		self.final_embeddings = final_embeddings
 
 		return self
 
@@ -295,10 +307,16 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		pdist = pairwise_distances(self.final_embeddings, vec, metric='cosine').ravel()
 		return pdist.argsort()
 		
-	def save(self):
+	def save(self, path):
 		'''
 		To save trained model.
 		'''
+		save_path = self.saver.save(self.sess, path + '/model.ckpt')
+		print("Model saved in file: %s" % save_path)
 		return
+
+	@classmethod
+	def restore(cls, path):
+		return	
 
 

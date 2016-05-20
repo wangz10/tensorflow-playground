@@ -26,7 +26,7 @@ print(len(data))
 w2v = Word2Vec(vocabulary_size=vocabulary_size, 
 	architecture='cbow',
 	# loss_type='nce_loss',
-	n_steps=10001)
+	n_steps=2001)
 
 w2v.fit(data)
 print(w2v.final_embeddings.shape)
@@ -37,4 +37,11 @@ print([reverse_dictionary[i] for i in w2v.sort(1)[:10]])
 
 # print([reverse_dictionary[i] for i in range(3)])
 # print(w2v.transform([0,1,2,3]).shape)
+
+w2v.save('models')
+print(w2v.final_embeddings[0,0])
+
+w2v.saver.restore(w2v.sess, 'models/model.ckpt')
+print(w2v.final_embeddings[0,0])
+
 
