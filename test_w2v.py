@@ -16,11 +16,11 @@ print('Data size', len(words))
 # Step 2: Build the dictionary and replace rare words with UNK token.
 vocabulary_size = 500
 
-data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size=vocabulary_size)
-del words  # Hint to reduce memory.
-print('Most common words (+UNK)', count[:5])
-print('Sample data', data[:10])
-print(len(data))
+# data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size=vocabulary_size)
+# del words  # Hint to reduce memory.
+# print('Most common words (+UNK)', count[:5])
+# print('Sample data', data[:10])
+# print(len(data))
 
 
 w2v = Word2Vec(vocabulary_size=vocabulary_size, 
@@ -29,12 +29,12 @@ w2v = Word2Vec(vocabulary_size=vocabulary_size,
 	n_steps=2001)
 
 # print w2v.get_params()
-w2v.fit(data)
+w2v.fit(words)
 print(w2v.final_embeddings.shape)
-print(w2v.sort(1).shape)
+print(len(w2v.sort('the')))
 
-print('words closest to %s:' % reverse_dictionary[1])
-print([reverse_dictionary[i] for i in w2v.sort(1)[:10]])
+print('words closest to %s:' % 'the')
+print(w2v.sort('the')[:10])
 
 # print([reverse_dictionary[i] for i in range(3)])
 # print(w2v.transform([0,1,2,3]).shape)
@@ -47,5 +47,7 @@ print save_path
 # restore a saved model
 w2c_restored = Word2Vec.restore(save_path)
 print(w2c_restored.final_embeddings[0,0])
+print(w2c_restored.dictionary['the'])
+print(w2c_restored.reverse_dictionary.items()[:5])
 
 

@@ -246,10 +246,27 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 			self.saver = tf.train.Saver()
 
 
-	def fit(self, data):
+	def _build_dictionaries(self, words):
 		'''
-		data: a list of word index. 
+		Process tokens and build dictionaries mapping between tokens and 
+		their indices. Also generate token count and bind these to self.
 		'''
+
+		data, count, dictionary, reverse_dictionary = build_dataset(words, 
+			self.vocabulary_size)
+		self.dictionary = dictionary
+		self.reverse_dictionary = reverse_dictionary
+		self.count = count
+		return data
+
+
+	def fit(self, words):
+		'''
+		words: a list of words. 
+		'''
+		# pre-process words to generate indices and dictionaries
+		data = self._build_dictionaries(words)
+
 		# with self.sess as session:
 		session = self.sess
 
@@ -289,26 +306,32 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 
 		return self
 
-	def transform(self, data):
+	def transform(self, words):
 		'''
 		Look up embedding vectors using indices
-		data: list of word index
+		words: list of words
 		'''
 		# make sure all word index are in range
-		assert all(np.array(data) < self.vocabulary_size - 1)
-		return self.final_embeddings[data]
+		try:
+			indices = [self.dictionary[w] for w in words]
+		except KeyError:
+			raise KeyError('Some word(s) not in dictionary')
+		else:
+			return self.final_embeddings[indices]
 
-	def sort(self, i):
-		'''
-		Use an input word index to sort words using cosine distance in ascending order
-		'''
-		assert i < self.vocabulary_size - 1
 
+	def sort(self, word):
+		'''
+		Use an input word to sort words using cosine distance in ascending order
+		'''
+		assert word in self.dictionary
+		i = self.dictionary[word]
 		vec = self.final_embeddings[i].reshape(1, -1)
 		# Calculate pairwise cosine distance and flatten to 1-d
 		pdist = pairwise_distances(self.final_embeddings, vec, metric='cosine').ravel()
-		return pdist.argsort()
+		return [self.reverse_dictionary[i] for i in pdist.argsort()]
 		
+
 	def save(self, path):
 		'''
 		To save trained model and its params.
@@ -317,6 +340,9 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		# save parameters of the model
 		params = self.get_params()
 		json.dump(params, open(path + '/model_params.json', 'wb'))
+		# save dictionary, reverse_dictionary
+		json.dump(self.dictionary, open(path+ '/model_dict.json', 'wb'))
+		json.dump(self.reverse_dictionary, open(path+ '/model_rdict.json', 'wb'))
 
 		print("Model saved in file: %s" % save_path)
 		return save_path
@@ -331,12 +357,19 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		To restore a saved model.
 		'''
 		# load params of the model
-		params = json.load(open(os.path.dirname(path) + '/model_params.json', 'rb'))
+		path_dir = os.path.dirname(path)
+		params = json.load(open(path_dir + '/model_params.json', 'rb'))
 		# init an instance of this class
 		estimator = Word2Vec(**params)
 		estimator._restore(path)
 		# evaluate the Variable normalized_embeddings and bind to final_embeddings
 		estimator.final_embeddings = estimator.sess.run(estimator.normalized_embeddings)
+		# bind dictionaries 
+		estimator.dictionary = json.load(open(path_dir + '/model_dict.json', 'rb'))
+		reverse_dictionary = json.load(open(path_dir + '/model_rdict.json', 'rb'))
+		# convert indices loaded from json back to int since json does not allow int as keys
+		estimator.reverse_dictionary = {int(key):val for key, val in reverse_dictionary.items()}
+
 		return estimator
 
 
