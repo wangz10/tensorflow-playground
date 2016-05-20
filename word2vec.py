@@ -31,7 +31,6 @@ from sklearn.metrics.pairwise import pairwise_distances
 SEED = 2016
 random.seed(SEED)
 np.random.seed(SEED)
-tf.set_random_seed(SEED)
 
 
 #################### Util functions #################### 
@@ -188,6 +187,8 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		'''
 		self.graph = tf.Graph()
 		with self.graph.as_default(), tf.device('/cpu:0'):
+			# Set graph level random seed
+			tf.set_random_seed(SEED)
 			# Input data.
 			if self.architecture == 'skip-gram':
 				self.train_dataset = tf.placeholder(tf.int32, shape=[self.batch_size])
