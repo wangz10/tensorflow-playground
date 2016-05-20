@@ -19,6 +19,7 @@ import math
 import os
 import random
 import re
+import json
 from itertools import compress
 
 import numpy as np
@@ -309,14 +310,33 @@ class Word2Vec(BaseEstimator, TransformerMixin):
 		
 	def save(self, path):
 		'''
-		To save trained model.
+		To save trained model and its params.
 		'''
 		save_path = self.saver.save(self.sess, path + '/model.ckpt')
+		# save parameters of the model
+		params = self.get_params()
+		json.dump(params, open(path + '/model_params.json', 'wb'))
+
 		print("Model saved in file: %s" % save_path)
-		return
+		return save_path
+
+	def _restore(self, path):
+		with self.graph.as_default():
+			self.saver.restore(self.sess, path)
 
 	@classmethod
 	def restore(cls, path):
-		return	
+		'''
+		To restore a saved model.
+		'''
+		# load params of the model
+		params = json.load(open(os.path.dirname(path) + '/model_params.json', 'rb'))
+		# init an instance of this class
+		estimator = Word2Vec(**params)
+		estimator._restore(path)
+		# evaluate the Variable normalized_embeddings and bind to final_embeddings
+		estimator.final_embeddings = estimator.sess.run(estimator.normalized_embeddings)
+		return estimator
+
 
 
