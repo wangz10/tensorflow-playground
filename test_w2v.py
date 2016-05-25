@@ -1,5 +1,5 @@
 import zipfile
-from word2vec import *
+from word2vec import Word2Vec
 # Read the data into a list of strings.
 def read_data(filename):
   """Extract the first file enclosed in a zip file as a list of words"""
