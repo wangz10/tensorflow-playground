@@ -43,11 +43,12 @@ def build_doc_dataset(docs, vocabulary_size=50000):
 		rare tokens will be replaced by 'UNK'
 	'''
 	count = [['UNK', -1]]
-	words = reduce(lambda x,y: x+y, docs)
-
+	# words = reduce(lambda x,y: x+y, docs)
+	words = []
 	doc_ids = [] # collect document(sentence) indices
 	for i, doc in enumerate(docs):
 		doc_ids.extend([i] * len(doc))
+		words.extend(doc)
 
 	word_ids, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size=vocabulary_size)
 
@@ -279,9 +280,11 @@ class Doc2Vec(BaseEstimator, TransformerMixin):
 		
 		# save dictionary, reverse_dictionary
 		json.dump(self.dictionary, 
-			open(os.path.join(path, 'model_dict.json'), 'wb'))
+			open(os.path.join(path, 'model_dict.json'), 'wb'), 
+			ensure_ascii=False)
 		json.dump(self.reverse_dictionary, 
-			open(os.path.join(path, 'model_rdict.json'), 'wb'))
+			open(os.path.join(path, 'model_rdict.json'), 'wb'), 
+			ensure_ascii=False)
 
 		print("Model saved in file: %s" % save_path)
 		return save_path
