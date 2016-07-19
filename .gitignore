@@ -3,3 +3,6 @@ data/
 *.png
 .ipynb_checkpoints/
 models/*
+logs/*
+MNIST_data/*
+*.pkl

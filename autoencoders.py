@@ -13,9 +13,171 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import os
+import json
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib import learn
+from tensorflow.contrib import learn
+from sklearn.base import BaseEstimator
+
+
+class BaseAutoencoder(BaseEstimator):
+	"""Base class for autoencoders"""
+	def __init__(self, n_input, n_hidden, activation_func='softplus', 
+		optimizer_name='AdamOptimizer',
+		learning_rate=0.001,
+		logdir='/tmp',
+		log_every_n=100, 
+		seed=42):
+		'''
+		params:
+		
+		activation_func (string): a name of activation_func in tf.nn 
+		optimizer_name (string): a name of the optimizer object name tf.train
+		'''
+		self.n_input = n_input
+		self.n_hidden = n_hidden
+		self.activation_func = activation_func
+		self.optimizer_name = optimizer_name
+		self.learning_rate = learning_rate
+		self.logdir = logdir
+		self.log_every_n = log_every_n
+		self.seed = seed
+
+		self.global_step = 0
+
+		self._parse_args()
+
+		self._init_graph()
+
+		self.sess = tf.Session(graph=self.graph)
+		self.sess.run(self.init_op)
+
+		self.summary_writer = tf.train.SummaryWriter(self.logdir, self.sess.graph)
+
+	def _parse_args(self):
+		'''Parse json serializable args to bind objects and functions'''
+		self.transfer = eval('tf.nn.%s' % self.activation_func)
+		self.optimizer = eval('tf.train.%s(%f)' % (self.optimizer_name, self.learning_rate))
+
+
+	def _init_graph(self):
+		self.graph = tf.Graph()
+		with self.graph.as_default():
+			tf.set_random_seed(self.seed)
+
+			self.variables = self._init_variables()
+			
+			# Model
+			self.x = tf.placeholder(tf.float32, [None, self.n_input])
+			self.hidden = self.transfer(tf.add(
+				tf.matmul(self.x, self.variables['encoder_W']), self.variables['encoder_b']))
+			# the reconstructed input
+			self.z = tf.add(
+				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'])
+
+			# Reconstruction loss
+			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)), 
+				name='Reconstruction_loss')
+			tf.scalar_summary(self.loss.op.name, self.loss)
+
+			self.optimize_op = self.optimizer.minimize(self.loss)
+
+			self.init_op = tf.initialize_all_variables()
+			# To save model
+			self.saver = tf.train.Saver()
+			# Summary writer for tensorboard
+			self.summary_op = tf.merge_all_summaries()
+
+
+	def _init_variables(self):
+		variables = dict()
+		variables['encoder_W'] = tf.get_variable('encoder_W', [self.n_input, self.n_hidden], 
+			initializer=tf.contrib.layers.xavier_initializer())
+		variables['encoder_b'] = tf.get_variable('encoder_b', [self.n_hidden],
+			initializer=tf.constant_initializer(0.0))
+		variables['decoder_W'] = tf.get_variable('decoder_W', [self.n_hidden, self.n_input], 
+			initializer=tf.contrib.layers.xavier_initializer())
+		variables['decoder_b'] = tf.get_variable('decoder_b', [self.n_input],
+			initializer=tf.constant_initializer(0.0))		
+		return variables 
+
+	def partial_fit(self, X):
+		if self.global_step % self.log_every_n == 0:
+			loss, opt, summary_str = self.sess.run((self.loss, self.optimize_op, self.summary_op), 
+				feed_dict={self.x: X})
+			self._write_summary(summary_str)
+		else:
+			loss, opt = self.sess.run((self.loss, self.optimize_op), 
+				feed_dict={self.x: X})
+		self.global_step += 1
+		return loss
+
+	def _write_summary(self, summary_str):
+		# Update the events file.
+		self.summary_writer.add_summary(summary_str, self.global_step)
+		self.summary_writer.flush()
+
+	# def fit(self, X, batch_size=128):
+	# 	return 
+
+	def calc_total_cost(self, X):
+		return self.sess.run(self.loss, feed_dict = {self.x: X})
+
+	def transform(self, X):
+		return self.sess.run(self.hidden, feed_dict={self.x: X})
+
+	def generate(self, hidden=None):
+		if hidden is None:
+			hidden = np.random.normal(size=self.weights["encoder_b"])
+		return self.sess.run(self.z, feed_dict={self.hidden: hidden})
+
+	def reconstruct(self, X):
+		return self.sess.run(self.z, feed_dict={self.x: X})
+
+	def get_variable(self, var_name):
+		"""Get a variable by name"""
+		return self.sess.run(self.variables[var_name])
+
+	def save(self, path):
+		'''
+		To save trained model and its params.
+		'''
+		# Create if dir does not exists
+		if not os.path.isdir(path):
+			os.mkdir(path)
+
+		save_path = self.saver.save(self.sess, 
+			os.path.join(path, 'model.ckpt'),
+			global_step=self.global_step)
+		# save parameters of the model
+		params = self.get_params()
+		json.dump(params, 
+			open(os.path.join(path, 'model_params.json'), 'wb'))
+
+		print("Model saved in file: %s" % save_path)
+		return save_path
+
+	def _restore(self, path):
+		with self.graph.as_default():
+			self.saver.restore(self.sess, path)
+	
+	@classmethod
+	def restore(cls, path):
+		'''
+		To restore a saved model.
+		'''
+		# load params of the model
+		path_dir = os.path.dirname(path)
+		params = json.load(open(os.path.join(path_dir, 'model_params.json'), 'rb'))
+		# init an instance of this class
+		estimator = BaseAutoencoder(**params)
+		estimator._restore(path)
+		# bind global_step
+		global_step = int(path.split('-')[-1])
+		estimator.global_step = global_step
+		return estimator
+
 
 class DualObjectiveAutoencoder(object):
 	"""docstring for DualObjectiveAutoencoder"""
