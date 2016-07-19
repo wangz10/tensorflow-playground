@@ -44,6 +44,11 @@ class BaseAutoencoder(BaseEstimator):
 		self.log_every_n = log_every_n
 		self.seed = seed
 
+		self._init_all()
+
+
+	def _init_all(self):
+		'''Initializes everything after params are bound'''
 		self.global_step = 0
 
 		self._parse_args()
@@ -54,6 +59,7 @@ class BaseAutoencoder(BaseEstimator):
 		self.sess.run(self.init_op)
 
 		self.summary_writer = tf.train.SummaryWriter(self.logdir, self.sess.graph)
+
 
 	def _parse_args(self):
 		'''Parse json serializable args to bind objects and functions'''
@@ -69,15 +75,18 @@ class BaseAutoencoder(BaseEstimator):
 			self.variables = self._init_variables()
 			
 			# Model
-			self.x = tf.placeholder(tf.float32, [None, self.n_input])
+			self.x = tf.placeholder(tf.float32, [None, self.n_input],
+				name='x')
 			self.hidden = self.transfer(tf.add(
-				tf.matmul(self.x, self.variables['encoder_W']), self.variables['encoder_b']))
+				tf.matmul(self.x, self.variables['encoder_W']), self.variables['encoder_b']),
+				name='code')
 			# the reconstructed input
 			self.z = tf.add(
-				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'])
+				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'],
+				name='z')
 
 			# Reconstruction loss
-			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)), 
+			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
 				name='Reconstruction_loss')
 			tf.scalar_summary(self.loss.op.name, self.loss)
 
@@ -171,13 +180,166 @@ class BaseAutoencoder(BaseEstimator):
 		path_dir = os.path.dirname(path)
 		params = json.load(open(os.path.join(path_dir, 'model_params.json'), 'rb'))
 		# init an instance of this class
-		estimator = BaseAutoencoder(**params)
+		estimator = cls(**params)
 		estimator._restore(path)
 		# bind global_step
 		global_step = int(path.split('-')[-1])
 		estimator.global_step = global_step
 		return estimator
 
+
+class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
+	
+	def __init__(self, n_input, n_hidden, 
+		activation_func='softplus', 
+		optimizer_name='AdamOptimizer',
+		learning_rate=0.001,
+		logdir='/tmp',
+		log_every_n=100, 
+		seed=42,
+		noise_stddev=0.01, 
+		):
+		'''
+		params in addition to BaseAutoencoder:
+
+		noise_stddev (float): standard deviation of the Gaussian noise.
+		'''
+		# Additional args
+		self.noise_stddev = noise_stddev
+
+		super(AdditiveGaussianNoiseAutoencoder, self).__init__(
+			n_input, n_hidden, 
+			activation_func=activation_func, 
+			optimizer_name=optimizer_name,
+			learning_rate=learning_rate,
+			logdir=logdir,
+			log_every_n=log_every_n, 
+			seed=seed
+			)
+
+
+	def _init_graph(self):
+		self.graph = tf.Graph()
+		with self.graph.as_default():
+			tf.set_random_seed(self.seed)
+
+			self.variables = self._init_variables()
+			
+			# Model
+			self.x = tf.placeholder(tf.float32, [None, self.n_input])
+			# Gaussian noise to be added to the input
+			noise = tf.random_normal((self.n_input, ), stddev=self.noise_stddev, 
+				name='Gaussian_noise')
+
+			self.hidden = self.transfer(tf.add(
+				tf.matmul(self.x + noise, self.variables['encoder_W']), 
+				self.variables['encoder_b']))
+			# the reconstructed input
+			self.z = tf.add(
+				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'])
+
+			# Reconstruction loss
+			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+				name='Reconstruction_loss')
+			tf.scalar_summary(self.loss.op.name, self.loss)
+
+			self.optimize_op = self.optimizer.minimize(self.loss)
+
+			self.init_op = tf.initialize_all_variables()
+			# To save model
+			self.saver = tf.train.Saver()
+			# Summary writer for tensorboard
+			self.summary_op = tf.merge_all_summaries()
+
+
+class MaskingNoiseAutoencoder(BaseAutoencoder):
+	"""docstring for MaskingNoiseAutoencoder"""
+	def __init__(self, n_input, n_hidden, 
+		activation_func='softplus', 
+		optimizer_name='AdamOptimizer',
+		learning_rate=0.001,
+		logdir='/tmp',
+		log_every_n=100, 
+		seed=42,
+		dropout_probability=0.95
+		):
+		'''
+		params in addition to BaseAutoencoder:
+
+		noise_stddev (float): standard deviation of the Gaussian noise.
+		'''
+		# Additional args
+		self.dropout_probability = dropout_probability
+
+		super(MaskingNoiseAutoencoder, self).__init__(
+			n_input, n_hidden, 
+			activation_func=activation_func, 
+			optimizer_name=optimizer_name,
+			learning_rate=learning_rate,
+			logdir=logdir,
+			log_every_n=log_every_n, 
+			seed=seed,
+			)
+
+	
+	def _init_graph(self):
+		self.graph = tf.Graph()
+		with self.graph.as_default():
+			tf.set_random_seed(self.seed)
+
+			self.variables = self._init_variables()
+
+			self.keep_prob = tf.placeholder((tf.float32), name='keep_prob')
+			
+			# Model
+			self.x = tf.placeholder(tf.float32, [None, self.n_input], name='x')
+			# Apply dropout on x during training phase only
+			self.hidden = self.transfer(tf.add(
+				tf.matmul(tf.nn.dropout(self.x, self.keep_prob), 
+					self.variables['encoder_W']), self.variables['encoder_b']),
+				name='code')
+			# the reconstructed input
+			self.z = tf.add(
+				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'],
+				name='z')
+
+			# Reconstruction loss
+			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+				name='Reconstruction_loss')
+			tf.scalar_summary(self.loss.op.name, self.loss)
+
+			self.optimize_op = self.optimizer.minimize(self.loss)
+
+			self.init_op = tf.initialize_all_variables()
+			# To save model
+			self.saver = tf.train.Saver()
+			# Summary writer for tensorboard
+			self.summary_op = tf.merge_all_summaries()
+
+	def partial_fit(self, X):
+		if self.global_step % self.log_every_n == 0:
+			loss, opt, summary_str = self.sess.run(
+				(self.loss, self.optimize_op, self.summary_op), 
+				feed_dict={self.x: X, self.keep_prob: self.dropout_probability})
+			self._write_summary(summary_str)
+		else:
+			loss, opt = self.sess.run(
+				(self.loss, self.optimize_op), 
+				feed_dict={self.x: X, self.keep_prob: self.dropout_probability})
+		self.global_step += 1
+		return loss
+
+	def calc_total_cost(self, X):
+		return self.sess.run(self.loss, 
+			feed_dict={self.x: X, self.keep_prob: 1.0})
+
+	def transform(self, X):
+		return self.sess.run(self.hidden, 
+			feed_dict={self.x: X, self.keep_prob: 1.0})
+
+	def reconstruct(self, X):
+		return self.sess.run(self.z, 
+			feed_dict={self.x: X, self.keep_prob: 1.0})
 
 class DualObjectiveAutoencoder(object):
 	"""docstring for DualObjectiveAutoencoder"""
