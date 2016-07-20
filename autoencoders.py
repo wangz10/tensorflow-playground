@@ -51,6 +51,14 @@ class BaseAutoencoder(BaseEstimator):
 		'''Initializes everything after params are bound'''
 		self.global_step = 0
 
+		# Count how many encoding layers are there
+		if isinstance(self.n_hidden, list):
+			self.n_layers = len(self.n_hidden)
+			self.hidden_layer_sizes = self.n_hidden
+		else:
+			self.n_layers = 1
+			self.hidden_layer_sizes = [self.n_hidden]
+
 		self._parse_args()
 
 		self._init_graph()
@@ -77,13 +85,28 @@ class BaseAutoencoder(BaseEstimator):
 			# Model
 			self.x = tf.placeholder(tf.float32, [None, self.n_input],
 				name='x')
-			self.hidden = self.transfer(tf.add(
-				tf.matmul(self.x, self.variables['encoder_W']), self.variables['encoder_b']),
-				name='code')
-			# the reconstructed input
-			self.z = tf.add(
-				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'],
-				name='z')
+			# Encoding
+			for i in range(self.n_layers):
+				if i == 0:
+					tensor_in = self.x
+				else:
+					tensor_in = hidden
+
+				hidden = self.transfer(tf.add(
+					tf.matmul(tensor_in, self.variables['encoder%d_W' % i]), self.variables['encoder%d_b' % i]),
+					name='encode_hidden%d' % i)
+			# Code
+			self.hidden = hidden
+			# Decoding
+			for i in range(self.n_layers):
+				if i == 0:
+					tensor_in = self.hidden
+				else:
+					tensor_in = hidden
+				hidden = tf.add(
+					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					name='decode_hidden%d' % i)
+			self.z = hidden
 
 			# Reconstruction loss
 			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
@@ -101,14 +124,38 @@ class BaseAutoencoder(BaseEstimator):
 
 	def _init_variables(self):
 		variables = dict()
-		variables['encoder_W'] = tf.get_variable('encoder_W', [self.n_input, self.n_hidden], 
-			initializer=tf.contrib.layers.xavier_initializer())
-		variables['encoder_b'] = tf.get_variable('encoder_b', [self.n_hidden],
-			initializer=tf.constant_initializer(0.0))
-		variables['decoder_W'] = tf.get_variable('decoder_W', [self.n_hidden, self.n_input], 
-			initializer=tf.contrib.layers.xavier_initializer())
-		variables['decoder_b'] = tf.get_variable('decoder_b', [self.n_input],
-			initializer=tf.constant_initializer(0.0))		
+		# Encoding layers
+		for i, n_hidden in enumerate(self.hidden_layer_sizes):
+			layer_name = 'encoder%d' % i
+			W_name = '%s_W' % layer_name
+			b_name = '%s_b' % layer_name
+			if i == 0:
+				weight_shape = [self.n_input, n_hidden]
+			else:
+				weight_shape = [self.hidden_layer_sizes[i-1], n_hidden]
+
+			variables[W_name] = tf.get_variable(W_name, weight_shape, 
+				initializer=tf.contrib.layers.xavier_initializer())
+			variables[b_name] = tf.get_variable(b_name, [n_hidden],
+				initializer=tf.constant_initializer(0.0))
+		# Decoding layers
+		rev_hidden_layer_sizes = self.hidden_layer_sizes[::-1]
+		for i, n_hidden in enumerate(rev_hidden_layer_sizes):
+			layer_name = 'decoder%d' % i
+			W_name = '%s_W' % layer_name
+			b_name = '%s_b' % layer_name
+			if i == self.n_layers - 1: # the output layer
+				weight_shape = [n_hidden, self.n_input]
+				b_shape = [self.n_input]
+			else:
+				weight_shape = [n_hidden, rev_hidden_layer_sizes[i+1]]
+				b_shape = rev_hidden_layer_sizes[i+1]
+
+			variables[W_name] = tf.get_variable(W_name, weight_shape, 
+				initializer=tf.contrib.layers.xavier_initializer())
+			variables[b_name] = tf.get_variable(b_name, b_shape,
+				initializer=tf.constant_initializer(0.0))
+
 		return variables 
 
 	def _to_write_summary(self):
@@ -232,19 +279,35 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			tf.set_random_seed(self.seed)
 
 			self.variables = self._init_variables()
-			
+
 			# Model
-			self.x = tf.placeholder(tf.float32, [None, self.n_input])
+			self.x = tf.placeholder(tf.float32, [None, self.n_input],
+				name='x')
 			# Gaussian noise to be added to the input
 			noise = tf.random_normal((self.n_input, ), stddev=self.noise_stddev, 
 				name='Gaussian_noise')
+			# Encoding
+			for i in range(self.n_layers):
+				if i == 0:
+					tensor_in = self.x + noise
+				else:
+					tensor_in = hidden
 
-			self.hidden = self.transfer(tf.add(
-				tf.matmul(self.x + noise, self.variables['encoder_W']), 
-				self.variables['encoder_b']))
-			# the reconstructed input
-			self.z = tf.add(
-				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'])
+				hidden = self.transfer(tf.add(
+					tf.matmul(tensor_in, self.variables['encoder%d_W' % i]), self.variables['encoder%d_b' % i]),
+					name='encode_hidden%d' % i)
+			# Code
+			self.hidden = hidden
+			# Decoding
+			for i in range(self.n_layers):
+				if i == 0:
+					tensor_in = self.hidden
+				else:
+					tensor_in = hidden
+				hidden = tf.add(
+					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					name='decode_hidden%d' % i)
+			self.z = hidden
 
 			# Reconstruction loss
 			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
@@ -301,15 +364,29 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			
 			# Model
 			self.x = tf.placeholder(tf.float32, [None, self.n_input], name='x')
-			# Apply dropout on x during training phase only
-			self.hidden = self.transfer(tf.add(
-				tf.matmul(tf.nn.dropout(self.x, self.keep_prob), 
-					self.variables['encoder_W']), self.variables['encoder_b']),
-				name='code')
-			# the reconstructed input
-			self.z = tf.add(
-				tf.matmul(self.hidden, self.variables['decoder_W']), self.variables['decoder_b'],
-				name='z')
+			# Encoding
+			for i in range(self.n_layers):
+				if i == 0:
+					# Apply dropout on x during training phase only
+					tensor_in = tf.nn.dropout(self.x, self.keep_prob)
+				else:
+					tensor_in = hidden
+
+				hidden = self.transfer(tf.add(
+					tf.matmul(tensor_in, self.variables['encoder%d_W' % i]), self.variables['encoder%d_b' % i]),
+					name='encode_hidden%d' % i)
+			# Code
+			self.hidden = hidden
+			# Decoding
+			for i in range(self.n_layers):
+				if i == 0:
+					tensor_in = self.hidden
+				else:
+					tensor_in = hidden
+				hidden = tf.add(
+					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					name='decode_hidden%d' % i)
+			self.z = hidden
 
 			# Reconstruction loss
 			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 

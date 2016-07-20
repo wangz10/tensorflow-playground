@@ -23,13 +23,20 @@ training_epochs = 5
 batch_size = 128
 display_step = 1
 
-ae = BaseAutoencoder(n_input=784, n_hidden=200, logdir='logs/ae', log_every_n=200)
-gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/gae', log_every_n=200)
-dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/dae', log_every_n=200)
+
+ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae', log_every_n=200)
+# deep_ae = BaseAutoencoder(n_input=784, n_hidden=[300, 200], logdir='logs/deep_ae', log_every_n=200)
+gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', log_every_n=200)
+dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', log_every_n=200)
 
 model_classes = [BaseAutoencoder, AdditiveGaussianNoiseAutoencoder, MaskingNoiseAutoencoder]
 models = [ae, gae, dae]
 model_names = ['ae', 'gae', 'dae']
+
+# model_classes = [BaseAutoencoder, BaseAutoencoder]
+# models = [ae, deep_ae]
+# model_names = ['ae', 'deep_ae']
+
 
 for epoch in range(training_epochs):
     # avg_cost = 0.
@@ -40,6 +47,7 @@ for epoch in range(training_epochs):
 
         # Fit training using batch data
         cost1 = ae.partial_fit(batch_xs)
+        # cost2 = deep_ae.partial_fit(batch_xs)
         cost2 = gae.partial_fit(batch_xs)
         cost3 = dae.partial_fit(batch_xs)
 
@@ -55,20 +63,21 @@ for epoch in range(training_epochs):
 
 
 print "Total loss ae: " + str(ae.calc_total_cost(X_test))
+# print "Total loss deep_ae: " + str(deep_ae.calc_total_cost(X_test))
 print "Total loss gae: " + str(gae.calc_total_cost(X_test))
 print "Total loss dae: " + str(dae.calc_total_cost(X_test))
 
 # print ae.global_step
 
-# for i in range(3):
-#     model_name = model_names[i]
-#     model = models[i]
-#     model_class = model_classes[i]
+for i in range(2):
+    model_name = model_names[i]
+    model = models[i]
+    model_class = model_classes[i]
 
-#     saved_path = model.save('models/%s' % model_name)
-#     ae_restored = model_class.restore(saved_path)
-#     print "Total loss: " + str(ae_restored.calc_total_cost(X_test))
-#     print ae_restored.global_step
+    saved_path = model.save('models/%s' % model_name)
+    ae_restored = model_class.restore(saved_path)
+    print "Total loss: " + str(ae_restored.calc_total_cost(X_test))
+    print ae_restored.global_step
 
 
 
