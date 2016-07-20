@@ -19,13 +19,13 @@ def get_random_block_from_data(data, batch_size):
 X_train, X_test = standard_scale(mnist.train.images, mnist.test.images)
 
 n_samples = int(mnist.train.num_examples)
-training_epochs = 10
+training_epochs = 5
 batch_size = 128
 display_step = 1
 
-ae = BaseAutoencoder(n_input=784, n_hidden=200, logdir='logs/ae', log_every_n=250)
-gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/gae', log_every_n=250)
-dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/dae', log_every_n=250)
+ae = BaseAutoencoder(n_input=784, n_hidden=200, logdir='logs/ae', log_every_n=200)
+gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/gae', log_every_n=200)
+dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=200, logdir='logs/dae', log_every_n=200)
 
 model_classes = [BaseAutoencoder, AdditiveGaussianNoiseAutoencoder, MaskingNoiseAutoencoder]
 models = [ae, gae, dae]

@@ -111,12 +111,20 @@ class BaseAutoencoder(BaseEstimator):
 			initializer=tf.constant_initializer(0.0))		
 		return variables 
 
+	def _to_write_summary(self):
+		'''Decide whether to write summary at current step'''
+		to_write_summary = False
+		if self.log_every_n is not None:
+			if self.global_step % self.log_every_n == 0:
+				to_write_summary = True
+		return to_write_summary
+
 	def partial_fit(self, X):
-		if self.global_step % self.log_every_n == 0:
+		if self._to_write_summary():
 			loss, opt, summary_str = self.sess.run((self.loss, self.optimize_op, self.summary_op), 
 				feed_dict={self.x: X})
 			self._write_summary(summary_str)
-		else:
+		else: # do not write summary
 			loss, opt = self.sess.run((self.loss, self.optimize_op), 
 				feed_dict={self.x: X})
 		self.global_step += 1
@@ -317,7 +325,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			self.summary_op = tf.merge_all_summaries()
 
 	def partial_fit(self, X):
-		if self.global_step % self.log_every_n == 0:
+		if self._to_write_summary():
 			loss, opt, summary_str = self.sess.run(
 				(self.loss, self.optimize_op, self.summary_op), 
 				feed_dict={self.x: X, self.keep_prob: self.dropout_probability})
