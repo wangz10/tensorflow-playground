@@ -109,7 +109,8 @@ class BaseAutoencoder(BaseEstimator):
 			self.z = hidden
 
 			# Reconstruction loss
-			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),	
 				name='Reconstruction_loss')
 			tf.scalar_summary(self.loss.op.name, self.loss)
 
@@ -310,7 +311,8 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			self.z = hidden
 
 			# Reconstruction loss
-			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),
 				name='Reconstruction_loss')
 			tf.scalar_summary(self.loss.op.name, self.loss)
 
@@ -389,7 +391,8 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			self.z = hidden
 
 			# Reconstruction loss
-			self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),
 				name='Reconstruction_loss')
 			tf.scalar_summary(self.loss.op.name, self.loss)
 
