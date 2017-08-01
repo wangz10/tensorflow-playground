@@ -17,7 +17,6 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import learn
 from sklearn.base import BaseEstimator
 
 
@@ -66,7 +65,7 @@ class BaseAutoencoder(BaseEstimator):
 		self.sess = tf.Session(graph=self.graph)
 		self.sess.run(self.init_op)
 
-		self.summary_writer = tf.train.SummaryWriter(self.logdir, self.sess.graph)
+		self.summary_writer = tf.summary.FileWriter(self.logdir, self.sess.graph)
 
 
 	def _parse_args(self):
@@ -109,18 +108,18 @@ class BaseAutoencoder(BaseEstimator):
 			self.z = hidden
 
 			# Reconstruction loss
-			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
-			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),	
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),	
 				name='Reconstruction_loss')
-			tf.scalar_summary(self.loss.op.name, self.loss)
+			tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 
-			self.init_op = tf.initialize_all_variables()
+			self.init_op = tf.global_variables_initializer()
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.merge_all_summaries()
+			self.summary_op = tf.summary.merge_all()
 
 
 	def _init_variables(self):
@@ -311,18 +310,18 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			self.z = hidden
 
 			# Reconstruction loss
-			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
-			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.scalar_summary(self.loss.op.name, self.loss)
+			tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 
-			self.init_op = tf.initialize_all_variables()
+			self.init_op = tf.global_variables_initializer()
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.merge_all_summaries()
+			self.summary_op = tf.summary.merge_all()
 
 
 class MaskingNoiseAutoencoder(BaseAutoencoder):
@@ -391,18 +390,18 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			self.z = hidden
 
 			# Reconstruction loss
-			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.sub(self.z, self.x))), 
-			self.loss = tf.reduce_mean(tf.square(tf.sub(self.z, self.x)),
+			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
+			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.scalar_summary(self.loss.op.name, self.loss)
+			tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 
-			self.init_op = tf.initialize_all_variables()
+			self.init_op = tf.global_variables_initializer()
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.merge_all_summaries()
+			self.summary_op = tf.summary.merge_all()
 
 	def partial_fit(self, X):
 		if self._to_write_summary():
@@ -483,18 +482,18 @@ class DualObjectiveAutoencoder(object):
 
 		# Loss
 		self.reconstruction_loss = tf.reduce_mean(
-			tf.square(tf.sub(self.reconstruction, self.x)))
+			tf.square(tf.subtract(self.reconstruction, self.x)))
 		if self.objective == 'cross_entropy':
 			self.supervised_loss = tf.reduce_mean(
 				tf.nn.softmax_cross_entropy_with_logits(self.z, self.y))
 		elif self.objective == 'mse':
 			self.supervised_loss = tf.reduce_mean(
-				tf.square(tf.sub(self.z, self.y)))
+				tf.square(tf.subtract(self.z, self.y)))
 
 		self.loss = self.reconstruction_loss + self.supervised_loss
 		self.optimizer = optimizer.minimize(self.loss)
 
-		init_op = tf.initialize_all_variables()
+		init_op = tf.global_variables_initializer()
 		self.sess = tf.Session()
 		self.sess.run(init_op)
 
