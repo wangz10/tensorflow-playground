@@ -32,8 +32,8 @@ session_kwargs = {'config': session_config}
 
 ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae', log_every_n=200, session_kwargs=session_kwargs)
 # deep_ae = BaseAutoencoder(n_input=784, n_hidden=[300, 200], logdir='logs/deep_ae', log_every_n=200)
-gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', log_every_n=200)
-dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', log_every_n=200)
+gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', log_every_n=200, session_kwargs=session_kwargs)
+dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', log_every_n=200, session_kwargs=session_kwargs)
 
 model_classes = [BaseAutoencoder, AdditiveGaussianNoiseAutoencoder, MaskingNoiseAutoencoder]
 models = [ae, gae, dae]

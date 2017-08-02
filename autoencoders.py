@@ -257,6 +257,7 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 		log_every_n=100, 
 		seed=42,
 		noise_stddev=0.01, 
+		session_kwargs={},
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -273,7 +274,8 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			learning_rate=learning_rate,
 			logdir=logdir,
 			log_every_n=log_every_n, 
-			seed=seed
+			seed=seed,
+			session_kwargs=session_kwargs,
 			)
 
 
@@ -337,7 +339,8 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 		logdir='/tmp',
 		log_every_n=100, 
 		seed=42,
-		dropout_probability=0.95
+		dropout_probability=0.95,
+		session_kwargs={},
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -355,6 +358,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			logdir=logdir,
 			log_every_n=log_every_n, 
 			seed=seed,
+			session_kwargs=session_kwargs,
 			)
 
 	
