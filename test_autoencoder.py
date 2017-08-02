@@ -23,8 +23,14 @@ training_epochs = 5
 batch_size = 128
 display_step = 1
 
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.70) # Use 70% of the GPU RAM
+session_config = tf.ConfigProto(
+    intra_op_parallelism_threads=2,
+    gpu_options=gpu_options
+    )
+session_kwargs = {'config': session_config}
 
-ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae', log_every_n=200)
+ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae', log_every_n=200, session_kwargs=session_kwargs)
 # deep_ae = BaseAutoencoder(n_input=784, n_hidden=[300, 200], logdir='logs/deep_ae', log_every_n=200)
 gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', log_every_n=200)
 dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', log_every_n=200)
@@ -68,7 +74,11 @@ print "Total loss gae: " + str(gae.calc_total_cost(X_test))
 print "Total loss dae: " + str(dae.calc_total_cost(X_test))
 
 # print ae.global_step
-
+try:
+    os.mkdir('models')
+except os.error:
+    pass
+    
 for i in range(2):
     model_name = model_names[i]
     model = models[i]

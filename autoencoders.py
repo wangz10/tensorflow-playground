@@ -27,7 +27,9 @@ class BaseAutoencoder(BaseEstimator):
 		learning_rate=0.001,
 		logdir='/tmp',
 		log_every_n=100, 
-		seed=42):
+		session_kwargs={},
+		seed=42
+		):
 		'''
 		params:
 		
@@ -41,6 +43,7 @@ class BaseAutoencoder(BaseEstimator):
 		self.learning_rate = learning_rate
 		self.logdir = logdir
 		self.log_every_n = log_every_n
+		self.session_kwargs = session_kwargs
 		self.seed = seed
 
 		self._init_all()
@@ -62,7 +65,7 @@ class BaseAutoencoder(BaseEstimator):
 
 		self._init_graph()
 
-		self.sess = tf.Session(graph=self.graph)
+		self.sess = tf.Session(graph=self.graph, **self.session_kwargs)
 		self.sess.run(self.init_op)
 
 		self.summary_writer = tf.summary.FileWriter(self.logdir, self.sess.graph)
@@ -216,6 +219,7 @@ class BaseAutoencoder(BaseEstimator):
 			global_step=self.global_step)
 		# save parameters of the model
 		params = self.get_params()
+		params.pop('session_kwargs', None)
 		json.dump(params, 
 			open(os.path.join(path, 'model_params.json'), 'wb'))
 
