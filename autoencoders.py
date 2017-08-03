@@ -28,7 +28,8 @@ class BaseAutoencoder(BaseEstimator):
 		logdir='/tmp',
 		log_every_n=100, 
 		session_kwargs={},
-		seed=42
+		seed=42,
+		tied_weights=False,
 		):
 		'''
 		params:
@@ -45,6 +46,7 @@ class BaseAutoencoder(BaseEstimator):
 		self.log_every_n = log_every_n
 		self.session_kwargs = session_kwargs
 		self.seed = seed
+		self.tied_weights = tied_weights
 
 		self._init_all()
 
@@ -78,7 +80,7 @@ class BaseAutoencoder(BaseEstimator):
 
 
 	def _init_graph(self):
-		self.graph = tf.Graph()
+		self.graph = tf.Graph()		
 		with self.graph.as_default():
 			tf.set_random_seed(self.seed)
 
@@ -105,8 +107,14 @@ class BaseAutoencoder(BaseEstimator):
 					tensor_in = self.hidden
 				else:
 					tensor_in = hidden
+				if self.tied_weights: # Use the transpose of encoder weights as decoder weights
+					tied_encoder_idx = range(self.n_layers)[::-1][i]
+					decoder_weights = tf.transpose(self.variables['encoder%d_W' % tied_encoder_idx])
+				else:
+					decoder_weights = self.variables['decoder%d_W' % i]
+
 				hidden = tf.add(
-					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
 			self.z = hidden
 
@@ -258,6 +266,7 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 		seed=42,
 		noise_stddev=0.01, 
 		session_kwargs={},
+		tied_weights=False,
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -276,6 +285,7 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			log_every_n=log_every_n, 
 			seed=seed,
 			session_kwargs=session_kwargs,
+			tied_weights=tied_weights,
 			)
 
 
@@ -310,8 +320,14 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 					tensor_in = self.hidden
 				else:
 					tensor_in = hidden
+				if self.tied_weights: # Use the transpose of encoder weights as decoder weights
+					tied_encoder_idx = range(self.n_layers)[::-1][i]
+					decoder_weights = tf.transpose(self.variables['encoder%d_W' % tied_encoder_idx])
+				else:
+					decoder_weights = self.variables['decoder%d_W' % i]
+
 				hidden = tf.add(
-					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
 			self.z = hidden
 
@@ -341,6 +357,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 		seed=42,
 		dropout_probability=0.95,
 		session_kwargs={},
+		tied_weights=False,
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -359,6 +376,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			log_every_n=log_every_n, 
 			seed=seed,
 			session_kwargs=session_kwargs,
+			tied_weights=tied_weights,
 			)
 
 	
@@ -392,8 +410,14 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 					tensor_in = self.hidden
 				else:
 					tensor_in = hidden
+				if self.tied_weights: # Use the transpose of encoder weights as decoder weights
+					tied_encoder_idx = range(self.n_layers)[::-1][i]
+					decoder_weights = tf.transpose(self.variables['encoder%d_W' % tied_encoder_idx])
+				else:
+					decoder_weights = self.variables['decoder%d_W' % i]
+
 				hidden = tf.add(
-					tf.matmul(tensor_in, self.variables['decoder%d_W' % i]), self.variables['decoder%d_b' % i],
+					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
 			self.z = hidden
 
