@@ -30,16 +30,19 @@ session_config = tf.ConfigProto(
     )
 session_kwargs = {'config': session_config}
 
-ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae', 
+ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='models/ae', 
     log_every_n=200, session_kwargs=session_kwargs,
-    tied_weights=True)
+    tied_weights=True,
+    linear_decoder=False)
 # deep_ae = BaseAutoencoder(n_input=784, n_hidden=[300, 200], logdir='logs/deep_ae', log_every_n=200)
-gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', 
+gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='models/gae', 
     log_every_n=200, session_kwargs=session_kwargs,
-    tied_weights=False)
-dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', 
+    tied_weights=True,
+    linear_decoder=False)
+dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='models/dae', 
     log_every_n=200, session_kwargs=session_kwargs,
-    tied_weights=True)
+    tied_weights=True,
+    linear_decoder=False)
 
 model_classes = [BaseAutoencoder, AdditiveGaussianNoiseAutoencoder, MaskingNoiseAutoencoder]
 models = [ae, gae, dae]

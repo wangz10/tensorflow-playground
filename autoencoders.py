@@ -30,6 +30,7 @@ class BaseAutoencoder(BaseEstimator):
 		session_kwargs={},
 		seed=42,
 		tied_weights=False,
+		linear_decoder=True,
 		):
 		'''
 		params:
@@ -47,6 +48,7 @@ class BaseAutoencoder(BaseEstimator):
 		self.session_kwargs = session_kwargs
 		self.seed = seed
 		self.tied_weights = tied_weights
+		self.linear_decoder = linear_decoder
 
 		self._init_all()
 
@@ -116,6 +118,11 @@ class BaseAutoencoder(BaseEstimator):
 				hidden = tf.add(
 					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
+				if self.n_layers > 1 and not self.linear_decoder:
+					if i < self.n_layers - 1: # not at the output layer
+						# Apply activation on decoder
+						hidden = self.transfer(hidden)
+
 			self.z = hidden
 
 			# Reconstruction loss
@@ -268,6 +275,7 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 		noise_stddev=0.01, 
 		session_kwargs={},
 		tied_weights=False,
+		linear_decoder=True,
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -287,6 +295,7 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			seed=seed,
 			session_kwargs=session_kwargs,
 			tied_weights=tied_weights,
+			linear_decoder=linear_decoder,
 			)
 
 
@@ -330,6 +339,10 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 				hidden = tf.add(
 					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
+				if self.n_layers > 1 and not self.linear_decoder: 
+					if i < self.n_layers - 1: # not at the output layer
+						# Apply activation on decoder
+						hidden = self.transfer(hidden)
 			self.z = hidden
 
 			# Reconstruction loss
@@ -359,6 +372,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 		dropout_probability=0.95,
 		session_kwargs={},
 		tied_weights=False,
+		linear_decoder=True,
 		):
 		'''
 		params in addition to BaseAutoencoder:
@@ -378,6 +392,7 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			seed=seed,
 			session_kwargs=session_kwargs,
 			tied_weights=tied_weights,
+			linear_decoder=linear_decoder,
 			)
 
 	
@@ -420,6 +435,10 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 				hidden = tf.add(
 					tf.matmul(tensor_in, decoder_weights), self.variables['decoder%d_b' % i],
 					name='decode_hidden%d' % i)
+				if self.n_layers > 1 and not self.linear_decoder: 
+					if i < self.n_layers - 1: # not at the output layer
+						# Apply activation on decoder
+						hidden = self.transfer(hidden)
 			self.z = hidden
 
 			# Reconstruction loss
