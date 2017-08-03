@@ -36,7 +36,7 @@ ae = BaseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/ae',
 # deep_ae = BaseAutoencoder(n_input=784, n_hidden=[300, 200], logdir='logs/deep_ae', log_every_n=200)
 gae = AdditiveGaussianNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/gae', 
     log_every_n=200, session_kwargs=session_kwargs,
-    tied_weights=True)
+    tied_weights=False)
 dae = MaskingNoiseAutoencoder(n_input=784, n_hidden=[400, 200], logdir='logs/dae', 
     log_every_n=200, session_kwargs=session_kwargs,
     tied_weights=True)

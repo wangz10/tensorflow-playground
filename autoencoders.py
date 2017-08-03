@@ -162,8 +162,9 @@ class BaseAutoencoder(BaseEstimator):
 				weight_shape = [n_hidden, rev_hidden_layer_sizes[i+1]]
 				b_shape = rev_hidden_layer_sizes[i+1]
 
-			variables[W_name] = tf.get_variable(W_name, weight_shape, 
-				initializer=tf.contrib.layers.xavier_initializer())
+			if not self.tied_weights: # only init decoder weights if not using tied weights
+				variables[W_name] = tf.get_variable(W_name, weight_shape, 
+					initializer=tf.contrib.layers.xavier_initializer())
 			variables[b_name] = tf.get_variable(b_name, b_shape,
 				initializer=tf.constant_initializer(0.0))
 
