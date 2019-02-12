@@ -153,7 +153,7 @@ valid_size = 5
 valid_examples = np.array(random.sample(range(100), 5))
 
 graph = tf.Graph()
-with graph.as_default(), tf.device('/cpu:0'):
+with graph.as_default():
 	# Set graph level random seed
 	tf.set_random_seed(SEED)
 	# Input data.

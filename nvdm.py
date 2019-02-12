@@ -73,7 +73,7 @@ class NVDM(BaseEstimator, TransformerMixin):
         input data, variables, model, loss function, optimizer
         '''
         self.graph = tf.Graph()
-        with self.graph.as_default(), tf.device('/cpu:0'):
+        with self.graph.as_default():
 
             # Input data.
             self.x = tf.placeholder(tf.float32, [None, self.vocab_size], name='input')

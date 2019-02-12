@@ -144,7 +144,7 @@ class Doc2Vec(BaseEstimator, TransformerMixin):
 		input data, variables, model, loss function, optimizer
 		'''
 		self.graph = tf.Graph()
-		with self.graph.as_default(), tf.device('/cpu:0'):
+		with self.graph.as_default():
 			# Set graph level random seed
 			tf.set_random_seed(SEED)
 
