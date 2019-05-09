@@ -129,7 +129,10 @@ class BaseAutoencoder(BaseEstimator):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),	
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
@@ -354,7 +357,10 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
@@ -455,7 +461,10 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
 			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
