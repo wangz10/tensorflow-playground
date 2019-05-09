@@ -139,7 +139,10 @@ class BaseAutoencoder(BaseEstimator):
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 
 	def _init_variables(self):
@@ -361,7 +364,10 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 
 class MaskingNoiseAutoencoder(BaseAutoencoder):
@@ -459,7 +465,10 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 	def partial_fit(self, X):
 		if self._to_write_summary():
