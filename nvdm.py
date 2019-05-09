@@ -146,7 +146,10 @@ class NVDM(BaseEstimator, TransformerMixin):
             self.optim_dec = optimizer.apply_gradients(zip(dec_grads, dec_vars))
 
             # init op 
-            self.init_op = tf.global_variables_initializer()
+            if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+                self.init_op = tf.initialize_all_variables()
+            else: #For tf version >= 0.12.0
+                self.init_op = tf.global_variables_initializer() 
             # create a saver 
             self.saver = tf.train.Saver()
 

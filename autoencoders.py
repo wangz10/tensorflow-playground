@@ -129,15 +129,23 @@ class BaseAutoencoder(BaseEstimator):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),	
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
-
-			self.init_op = tf.global_variables_initializer()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.init_op = tf.initialize_all_variables()
+			else: # For tf version >= 0.12.0
+				self.init_op = tf.global_variables_initializer()	
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 
 	def _init_variables(self):
@@ -349,15 +357,23 @@ class AdditiveGaussianNoiseAutoencoder(BaseAutoencoder):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
-
-			self.init_op = tf.global_variables_initializer()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.init_op = tf.initialize_all_variables()
+			else: # For tf version >= 0.12.0
+				self.init_op = tf.global_variables_initializer()	
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 
 class MaskingNoiseAutoencoder(BaseAutoencoder):
@@ -445,15 +461,23 @@ class MaskingNoiseAutoencoder(BaseAutoencoder):
 			# self.loss = tf.mul(0.5, tf.reduce_sum(tf.square(tf.subtract(self.z, self.x))), 
 			self.loss = tf.reduce_mean(tf.square(tf.subtract(self.z, self.x)),
 				name='Reconstruction_loss')
-			tf.summary.scalar(self.loss.op.name, self.loss)
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<11): # For tf version <0.12.0
+				tf.scalar_summary(self.loss.op.name, self.loss)
+			else:
+				tf.summary.scalar(self.loss.op.name, self.loss)
 
 			self.optimize_op = self.optimizer.minimize(self.loss)
-
-			self.init_op = tf.global_variables_initializer()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.init_op = tf.initialize_all_variables()
+			else: # For tf version >= 0.12.0
+				self.init_op = tf.global_variables_initializer()	
 			# To save model
 			self.saver = tf.train.Saver()
 			# Summary writer for tensorboard
-			self.summary_op = tf.summary.merge_all()
+			if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+				self.summary_op = tf.merge_all_summaries()
+			else:
+				self.summary_op = tf.summary.merge_all()
 
 	def partial_fit(self, X):
 		if self._to_write_summary():
@@ -544,8 +568,10 @@ class DualObjectiveAutoencoder(object):
 
 		self.loss = self.reconstruction_loss + self.supervised_loss
 		self.optimizer = optimizer.minimize(self.loss)
-
-		init_op = tf.global_variables_initializer()
+		if(tf.__version__.startswith("0.") and int(tf.__version__.split(".")[1])<12): # For tf version <0.12.0
+			init_op = tf.initialize_all_variables()
+		else: # For tf version >= 0.12.0
+			init_op = tf.global_variables_initializer()	
 		self.sess = tf.Session()
 		self.sess.run(init_op)
 
